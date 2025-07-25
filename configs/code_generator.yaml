@@ -1,0 +1,75 @@
+# Configuration for Code Generator
+
+# OpenAI API Configuration
+openai:
+  model: "gpt-4"
+  max_tokens: 2000
+  temperature: 0.7
+  top_p: 1.0
+  frequency_penalty: 0.0
+  presence_penalty: 0.0
+  timeout: 60  # seconds
+
+# Retry Configuration
+retry:
+  max_attempts: 3
+  wait_multiplier: 2
+  wait_min: 1
+  wait_max: 10
+
+# Code Generation Settings
+generation:
+  min_functions: 2
+  max_functions: 5
+  include_main: true
+  include_docstrings: true
+  include_type_hints: true
+
+# Output Configuration
+output:
+  save_directory: "data/generated"
+  include_metadata: true
+  filename_format: "generated_{timestamp}_{hash}.py"
+  metadata_format: "json"
+
+# Code Validation
+validation:
+  syntax_check: true
+  import_check: true
+  basic_execution_test: false  # Set to true for basic execution validation
+
+# Prompt Templates
+prompts:
+  system_message: |
+    You are an expert Python programmer. Generate complete, executable Python programs that demonstrate specific programming concepts and applications.
+    
+    Requirements:
+    - Write clean, well-documented code with docstrings
+    - Include multiple functions that work together
+    - Handle edge cases and errors appropriately
+    - Use the specified programming concepts effectively
+    - Create realistic, practical applications
+    - Ensure the code takes input and produces clear output
+    - Include a main function or execution block
+  
+  user_template: |
+    Create a Python program for {application} that demonstrates {concept}.
+    
+    Requirements:
+    - Implement {min_functions}-{max_functions} functions
+    - Focus on {concept} as the core programming concept
+    - Make it a practical {application} application
+    - Include proper error handling and edge cases
+    - Add docstrings and comments for clarity
+    - Ensure the program is executable and produces meaningful output
+    - Include examples of input/output in comments
+    
+    The program should be complete and ready to run.
+
+# Common imports to add if missing
+common_imports:
+  - "import sys"
+  - "import os"
+  - "from typing import List, Dict, Optional, Union, Any"
+  - "import json"
+  - "import re"

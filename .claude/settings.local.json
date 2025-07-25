@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(touch:*)",
+      "Bash(mkdir:*)",
+      "Bash(python -m pytest tests/test_seed_manager.py -v)",
+      "Bash(python:*)"
+    ],
+    "deny": []
+  }
+}
