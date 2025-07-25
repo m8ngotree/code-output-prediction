@@ -1,0 +1,406 @@
+# Comprehensive Configuration for Code Output Prediction System
+# This file defines all system settings with sensible defaults
+# Environment variables can override any setting using the format: COP_SECTION_SETTING
+# Example: COP_API_OPENAI_API_KEY overrides api.openai.api_key
+
+# API Configuration
+api:
+  openai:
+    # OpenAI API configuration (can be overridden with COP_API_OPENAI_API_KEY)
+    api_key: ${OPENAI_API_KEY:}
+    model: "gpt-3.5-turbo"
+    max_tokens: 1500
+    temperature: 0.5
+    top_p: 1.0
+    frequency_penalty: 0.2
+    presence_penalty: 0.1
+    timeout_seconds: 30
+    
+    # Rate limiting
+    rate_limit:
+      requests_per_minute: 60
+      tokens_per_minute: 40000
+      max_retries: 3
+      backoff_multiplier: 2
+      max_backoff_seconds: 60
+    
+    # Cost tracking and limits
+    cost_tracking:
+      enabled: true
+      daily_limit_usd: 50.0
+      monthly_limit_usd: 500.0
+      alert_threshold_usd: 40.0
+      track_token_usage: true
+      save_usage_logs: true
+      usage_log_file: "data/logs/api_usage.json"
+
+# Generation Settings
+generation:
+  # Sample configuration
+  samples:
+    # Number of samples per programming language
+    per_language:
+      python: 100
+      javascript: 50
+      java: 30
+      cpp: 20
+      go: 20
+    
+    # Total samples (overrides per_language if set)
+    total_samples: null
+    
+    # Batch processing
+    batch_size: 10
+    concurrent_generations: 3
+    
+  # Code complexity preferences
+  complexity:
+    min_functions: 2
+    max_functions: 5
+    min_lines: 20
+    max_lines: 200
+    include_main: true
+    include_docstrings: true
+    include_type_hints: true
+    avoid_infinite_loops: true
+    max_execution_time_seconds: 5
+    max_iterations: 1000
+  
+  # Seed sampling strategies
+  seeds:
+    strategy: "random"  # random, sequential, weighted
+    sampling_method: "with_replacement"  # with_replacement, without_replacement
+    application_weights: {}  # Custom weights for applications
+    concept_weights: {}      # Custom weights for concepts
+    seed_file_path: "data/seeds"
+    custom_seeds_enabled: true
+    
+    # Seed diversity settings
+    diversity:
+      ensure_coverage: true
+      min_unique_applications: 10
+      min_unique_concepts: 15
+      avoid_repetition_within: 5  # samples
+  
+  # Output configuration
+  output:
+    base_directory: "data/generated"
+    create_subdirectories: true
+    directory_structure: "timestamp"  # timestamp, language, hybrid
+    filename_format: "generated_{timestamp}_{hash}.py"
+    save_metadata: true
+    save_raw_responses: false
+    compress_old_files: false
+    
+    # File organization
+    organization:
+      separate_by_language: true
+      separate_by_success: true
+      archive_after_days: 30
+      max_files_per_directory: 1000
+
+# Execution Settings
+execution:
+  # Timeout configuration
+  timeouts:
+    code_execution_seconds: 10
+    input_generation_seconds: 30
+    total_pipeline_minutes: 60
+    
+  # Resource limits
+  resources:
+    max_memory_mb: 256
+    max_cpu_time_seconds: 10
+    max_file_size_mb: 10
+    max_output_length: 10000
+    temp_directory: "/tmp/cop_execution"
+    cleanup_temp_files: true
+    
+  # Parallel processing
+  parallel:
+    enabled: false  # Enable for production
+    max_workers: 4
+    execution_mode: "thread"  # thread, process
+    queue_size: 100
+    
+  # Error handling
+  error_handling:
+    max_retries: 3
+    retry_delay_seconds: 1.0
+    exponential_backoff: true
+    fail_fast: false
+    save_error_details: true
+    error_log_file: "data/logs/execution_errors.json"
+    
+    # Recovery strategies
+    recovery:
+      retry_with_simpler_code: true
+      fallback_to_basic_execution: true
+      skip_problematic_inputs: true
+
+# Verification Settings
+verification:
+  # Comparison tolerances
+  tolerances:
+    numeric_absolute: 1e-6
+    numeric_relative: 1e-9
+    fuzzy_string_threshold: 0.8
+    list_similarity_threshold: 0.7
+    json_key_tolerance: 0.9
+    
+  # Output formatting
+  formatting:
+    case_sensitive: false
+    ignore_whitespace: true
+    normalize_unicode: true
+    strip_strings: true
+    standardize_newlines: true
+    
+  # Scoring parameters
+  scoring:
+    enable_partial_credit: true
+    min_partial_score: 0.1
+    confidence_threshold: 0.8
+    weight_by_difficulty: false
+    
+    # Scoring weights for different comparison types
+    comparison_weights:
+      exact_match: 1.0
+      fuzzy_match: 0.9
+      numeric_match: 1.0
+      list_match: 0.95
+      json_match: 0.95
+      regex_match: 0.85
+  
+  # Verification modes
+  modes:
+    auto_detect_type: true
+    fallback_to_string: true
+    enable_regex_patterns: true
+    deep_structure_comparison: true
+    
+  # Report generation
+  reports:
+    generate_detailed_reports: true
+    include_failure_analysis: true
+    export_format: "json"
+    save_individual_results: true
+    aggregate_statistics: true
+
+# Logging and Monitoring
+logging:
+  # Log levels and destinations
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  
+  # Log destinations
+  destinations:
+    console:
+      enabled: true
+      level: "INFO"
+      colored: true
+      
+    file:
+      enabled: true
+      level: "DEBUG"
+      path: "data/logs/application.log"
+      max_size_mb: 100
+      backup_count: 5
+      rotation: "time"  # size, time
+      
+    json_file:
+      enabled: false
+      path: "data/logs/structured.jsonl"
+      include_extra_fields: true
+  
+  # Component-specific logging
+  components:
+    pipeline: "INFO"
+    code_generator: "INFO"
+    input_generator: "INFO"
+    executor: "INFO"
+    verifier: "INFO"
+    config: "WARNING"
+  
+  # Progress reporting
+  progress:
+    show_progress_bars: true
+    detailed_step_logging: true
+    estimate_time_remaining: true
+    show_throughput_stats: true
+    update_interval_seconds: 1.0
+    
+    # Progress persistence
+    save_progress_state: true
+    progress_file: "data/state/progress.json"
+    checkpoint_interval: 10  # samples
+  
+  # Statistics collection
+  statistics:
+    enabled: true
+    collection_level: "detailed"  # basic, detailed, comprehensive
+    real_time_metrics: true
+    
+    # Metrics to collect
+    metrics:
+      execution_times: true
+      memory_usage: true
+      api_usage: true
+      error_rates: true
+      success_rates: true
+      throughput: true
+      
+    # Statistics export
+    export:
+      enabled: true
+      format: "json"
+      interval_minutes: 30
+      path: "data/metrics/statistics_{timestamp}.json"
+      
+    # Performance monitoring
+    performance:
+      track_component_times: true
+      identify_bottlenecks: true
+      alert_on_slowdown: false
+      slowdown_threshold_percent: 50
+
+# System Configuration
+system:
+  # Environment
+  environment: "development"  # development, testing, production
+  debug_mode: false
+  strict_validation: true
+  
+  # Data persistence
+  persistence:
+    auto_save_interval: 300  # seconds
+    backup_on_start: true
+    compress_backups: true
+    max_backup_files: 10
+    data_retention_days: 90
+    
+  # Security
+  security:
+    validate_code_safety: true
+    sandbox_execution: true
+    restrict_imports: true
+    allowed_modules: 
+      - "math"
+      - "random"
+      - "datetime"
+      - "json"
+      - "re"
+      - "itertools"
+      - "collections"
+    forbidden_functions:
+      - "exec"
+      - "eval"
+      - "open"
+      - "__import__"
+  
+  # Cache configuration
+  cache:
+    enabled: true
+    backend: "memory"  # memory, file, redis
+    ttl_seconds: 3600
+    max_size_mb: 100
+    
+    # Cache strategies
+    strategies:
+      code_analysis: true
+      api_responses: false  # Don't cache API responses
+      execution_results: true
+      verification_results: true
+
+# Feature Flags
+features:
+  # Experimental features
+  experimental:
+    enable_code_optimization: false
+    use_advanced_input_generation: false
+    enable_ml_verification: false
+    parallel_verification: false
+    
+  # Deprecated features (for backward compatibility)
+  deprecated:
+    legacy_config_format: false
+    old_api_client: false
+    
+  # Beta features
+  beta:
+    enhanced_error_recovery: true
+    smart_retry_logic: true
+    adaptive_timeouts: false
+    
+# Integration Settings
+integrations:
+  # External services
+  external_services:
+    enabled: false
+    
+    # GitHub integration
+    github:
+      enabled: false
+      token: ${GITHUB_TOKEN:}
+      repository: ""
+      auto_commit_results: false
+      
+    # Slack notifications
+    slack:
+      enabled: false
+      webhook_url: ${SLACK_WEBHOOK_URL:}
+      notify_on_completion: false
+      notify_on_errors: false
+      
+    # Email notifications
+    email:
+      enabled: false
+      smtp_server: ""
+      smtp_port: 587
+      username: ${EMAIL_USERNAME:}
+      password: ${EMAIL_PASSWORD:}
+      from_address: ""
+      to_addresses: []
+
+# Resource Quotas and Limits
+quotas:
+  # Daily limits
+  daily:
+    max_api_calls: 1000
+    max_execution_time_minutes: 120
+    max_generated_samples: 500
+    max_storage_mb: 1000
+    
+  # Per-run limits
+  per_run:
+    max_samples: 1000
+    max_duration_minutes: 240
+    max_memory_usage_mb: 2048
+    max_concurrent_operations: 10
+    
+  # Rate limits
+  rate_limits:
+    api_calls_per_second: 2
+    executions_per_minute: 60
+    file_operations_per_second: 10
+
+# Development and Testing
+development:
+  # Debug settings
+  debug:
+    enable_debug_mode: false
+    verbose_logging: false
+    save_intermediate_states: false
+    profile_performance: false
+    
+  # Testing
+  testing:
+    use_mock_api: false
+    test_data_directory: "tests/data"
+    generate_test_reports: false
+    
+  # Development tools
+  tools:
+    enable_hot_reload: false
+    auto_format_code: false
+    validate_on_save: true

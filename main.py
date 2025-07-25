@@ -19,6 +19,13 @@ except ImportError:
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
+# Initialize configuration system
+from src.utils.config import init_config
+config = init_config(
+    config_file="configs/config.yaml",
+    environment=os.getenv("ENVIRONMENT", "development")
+)
+
 
 def generate_mode(args):
     """Handle generate mode - create synthetic code examples."""

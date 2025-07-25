@@ -20,6 +20,7 @@ import yaml
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 from ..seeds.seed_manager import SeedManager
+from ..utils.config import get_config, ConfigurationError
 
 
 class CodeGenerationError(Exception):
@@ -44,21 +45,30 @@ class CodeGenerator:
         Initialize the CodeGenerator.
         
         Args:
-            config_path: Path to configuration YAML file
+            config_path: Path to configuration YAML file (deprecated - uses central config)
             api_key: OpenAI API key (if not provided, uses environment variable)
         """
-        self.config = self._load_config(config_path)
+        # Use centralized configuration system
+        self.global_config = get_config()
+        
+        # For backward compatibility, load old config if provided
+        if config_path:
+            self.config = self._load_config(config_path)
+        else:
+            self.config = self._get_config_from_global()
+        
         self.seed_manager = SeedManager()
         
         # Initialize OpenAI client
-        api_key = api_key or os.getenv("OPENAI_API_KEY")
+        api_key = api_key or self.global_config.get('api.openai.api_key') or os.getenv("OPENAI_API_KEY")
         if not api_key:
-            raise ValueError("OpenAI API key must be provided either as parameter or OPENAI_API_KEY environment variable")
+            raise ValueError("OpenAI API key must be provided either as parameter, configuration, or OPENAI_API_KEY environment variable")
         
         self.client = openai.OpenAI(api_key=api_key)
         
         # Ensure output directory exists
-        self.output_dir = Path(self.config["output"]["save_directory"])
+        output_dir = self.config.get("output", {}).get("save_directory") or self.global_config.get('generation.output.base_directory')
+        self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
     
     def _load_config(self, config_path: Optional[str] = None) -> Dict[str, Any]:
@@ -75,6 +85,81 @@ class CodeGenerator:
         
         with open(config_path, 'r', encoding='utf-8') as f:
             return yaml.safe_load(f)
+    
+    def _get_config_from_global(self) -> Dict[str, Any]:
+        """Convert global configuration to code generator format."""
+        return {
+            "openai": {
+                "model": self.global_config.get('api.openai.model', 'gpt-3.5-turbo'),
+                "max_tokens": self.global_config.get('api.openai.max_tokens', 1500),
+                "temperature": self.global_config.get('api.openai.temperature', 0.5),
+                "top_p": self.global_config.get('api.openai.top_p', 1.0),
+                "frequency_penalty": self.global_config.get('api.openai.frequency_penalty', 0.2),
+                "presence_penalty": self.global_config.get('api.openai.presence_penalty', 0.1),
+                "timeout": self.global_config.get('api.openai.timeout_seconds', 30)
+            },
+            "retry": {
+                "max_attempts": self.global_config.get('api.openai.rate_limit.max_retries', 3),
+                "wait_multiplier": self.global_config.get('api.openai.rate_limit.backoff_multiplier', 2),
+                "wait_min": 1,
+                "wait_max": self.global_config.get('api.openai.rate_limit.max_backoff_seconds', 60)
+            },
+            "generation": {
+                "min_functions": self.global_config.get('generation.complexity.min_functions', 2),
+                "max_functions": self.global_config.get('generation.complexity.max_functions', 5),
+                "include_main": self.global_config.get('generation.complexity.include_main', True),
+                "include_docstrings": self.global_config.get('generation.complexity.include_docstrings', True),
+                "include_type_hints": self.global_config.get('generation.complexity.include_type_hints', True)
+            },
+            "output": {
+                "save_directory": self.global_config.get('generation.output.base_directory', 'data/generated'),
+                "include_metadata": self.global_config.get('generation.output.save_metadata', True),
+                "filename_format": self.global_config.get('generation.output.filename_format', 'generated_{timestamp}_{hash}.py'),
+                "metadata_format": "json"
+            },
+            "validation": {
+                "syntax_check": True,
+                "import_check": True,
+                "basic_execution_test": False
+            },
+            "prompts": {
+                "system_message": """You are an expert Python programmer. Generate complete, executable Python programs that demonstrate specific programming concepts and applications.
+
+Requirements:
+- Write clean, well-documented code with docstrings
+- Include multiple functions that work together
+- Handle edge cases and errors appropriately
+- Use the specified programming concepts effectively
+- Create realistic, practical applications
+- Ensure the code takes input and produces clear output
+- Include a main function or execution block
+- IMPORTANT: Avoid infinite loops, excessive recursion, or long-running operations
+- Keep execution time under 5 seconds
+- Use reasonable input sizes and iteration limits""",
+                "user_template": """Create a Python program for {application} that demonstrates {concept}.
+
+Requirements:
+- Implement {min_functions}-{max_functions} functions
+- Focus on {concept} as the core programming concept
+- Make it a practical {application} application
+- Include proper error handling and edge cases
+- Add docstrings and comments for clarity
+- Ensure the program is executable and produces meaningful output
+- Include examples of input/output in comments
+- CRITICAL: Avoid infinite loops, excessive recursion, or time-consuming operations
+- Use small datasets and reasonable iteration limits (max 1000 iterations)
+- Complete execution in under 5 seconds
+
+The program should be complete, fast, and ready to run."""
+            },
+            "common_imports": [
+                "import sys",
+                "import os",
+                "from typing import List, Dict, Optional, Union, Any",
+                "import json",
+                "import re"
+            ]
+        }
     
     def _create_prompt(self, application: str, concept: str) -> Tuple[str, str]:
         """

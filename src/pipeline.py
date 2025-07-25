@@ -25,19 +25,25 @@ from .generators.code_generator import CodeGenerator, CodeGenerationError
 from .generators.input_generator import InputGenerator
 from .executors.python_executor import PythonExecutor, SecurityLimits, ExecutionResult
 from .seeds.seed_manager import SeedManager
+from .utils.config import get_config, ConfigurationError
 
 
 class PipelineConfig:
-    """Configuration management for the pipeline."""
+    """Configuration management for the pipeline (deprecated - uses central config)."""
     
     def __init__(self, config_path: Optional[str] = None):
         """Initialize configuration from file or defaults."""
-        self.config = self._load_default_config()
+        # Use centralized configuration system
+        self.global_config = get_config()
         
+        # For backward compatibility, support old config loading
         if config_path and Path(config_path).exists():
             with open(config_path, 'r') as f:
                 user_config = yaml.safe_load(f)
-                self._merge_config(user_config)
+                self.config = self._merge_config(self._load_default_config(), user_config)
+        else:
+            # Convert global config to pipeline format
+            self.config = self._get_config_from_global()
     
     def _load_default_config(self) -> Dict[str, Any]:
         """Load default configuration."""
@@ -78,7 +84,46 @@ class PipelineConfig:
             }
         }
     
-    def _merge_config(self, user_config: Dict[str, Any]):
+    def _get_config_from_global(self) -> Dict[str, Any]:
+        """Convert global configuration to pipeline format."""
+        return {
+            "pipeline": {
+                "num_samples": self.global_config.get('generation.samples.total_samples') or 10,
+                "resume_from": None,
+                "output_dir": self.global_config.get('generation.output.base_directory', 'data/pipeline_results'),  
+                "intermediate_save": self.global_config.get('system.persistence.auto_save_interval', 300) > 0,
+                "save_interval": max(1, self.global_config.get('logging.progress.checkpoint_interval', 10))
+            },
+            "code_generation": {
+                "config_path": None,  # Using global config
+                "retry_attempts": self.global_config.get('api.openai.rate_limit.max_retries', 3),
+                "timeout_seconds": self.global_config.get('api.openai.timeout_seconds', 30)
+            },
+            "input_generation": {
+                "inputs_per_code": self.global_config.get('generation.samples.per_language.python', 8),
+                "max_input_variants": 10,
+                "include_edge_cases": True
+            },
+            "execution": {
+                "timeout_seconds": self.global_config.get('execution.timeouts.code_execution_seconds', 10),
+                "max_memory_mb": self.global_config.get('execution.resources.max_memory_mb', 256),
+                "max_concurrent": self.global_config.get('execution.parallel.max_workers', 1),
+                "retry_failures": self.global_config.get('execution.error_handling.max_retries', 3) > 0
+            },
+            "logging": {
+                "level": self.global_config.get('logging.level', 'INFO'),
+                "file": self.global_config.get('logging.destinations.file.path'),
+                "console": self.global_config.get('logging.destinations.console.enabled', True),
+                "format": self.global_config.get('logging.format', '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            },
+            "progress": {
+                "show_progress_bars": self.global_config.get('logging.progress.show_progress_bars', True),
+                "detailed_logging": self.global_config.get('logging.progress.detailed_step_logging', True),
+                "save_statistics": self.global_config.get('logging.statistics.enabled', True)
+            }
+        }
+    
+    def _merge_config(self, default: Dict[str, Any], user_config: Dict[str, Any]) -> Dict[str, Any]:
         """Merge user configuration with defaults."""
         def deep_merge(default: Dict, user: Dict):
             for key, value in user.items():
@@ -87,7 +132,9 @@ class PipelineConfig:
                 else:
                     default[key] = value
         
-        deep_merge(self.config, user_config)
+        result = default.copy()
+        deep_merge(result, user_config)
+        return result
     
     def get(self, path: str, default: Any = None) -> Any:
         """Get configuration value using dot notation."""
