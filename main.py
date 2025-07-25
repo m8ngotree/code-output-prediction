@@ -8,6 +8,14 @@ import os
 import sys
 from pathlib import Path
 
+# Try to load environment variables from .env file if available
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # dotenv not installed, continue without it
+    pass
+
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
@@ -129,6 +137,44 @@ def list_seeds():
         print(f"❌ Error listing seeds: {e}")
 
 
+def pipeline_mode(args):
+    """Handle pipeline mode - run complete end-to-end pipeline."""
+    try:
+        from src.pipeline import CodeOutputPredictionPipeline
+        
+        print("🚀 Starting complete pipeline...")
+        
+        # Initialize pipeline
+        pipeline = CodeOutputPredictionPipeline(config_path=args.config)
+        
+        # Override config with CLI arguments
+        if args.samples:
+            pipeline.config.config["pipeline"]["num_samples"] = args.samples
+        
+        if args.output:
+            pipeline.config.config["pipeline"]["output_dir"] = args.output
+            pipeline.output_dir = Path(args.output)
+            pipeline.output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Run complete pipeline
+        success = pipeline.run_pipeline()
+        
+        if success:
+            print("🎉 Pipeline completed successfully!")
+            return 0
+        else:
+            print("❌ Pipeline failed!")
+            return 1
+            
+    except ImportError as e:
+        print(f"❌ Import error: {e}")
+        print("Make sure all dependencies are installed: pip install -r requirements.txt")
+        return 1
+    except Exception as e:
+        print(f"❌ Error during pipeline execution: {e}")
+        return 1
+
+
 def main():
     """Main function to run the code output prediction system."""
     parser = argparse.ArgumentParser(
@@ -136,6 +182,10 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
+  # Run complete pipeline
+  python main.py --mode pipeline --samples 10 --config configs/pipeline.yaml
+  
+  # Individual components
   python main.py --mode generate --count 5
   python main.py --mode generate --application "web scraping" --concept "recursion"
   python main.py --list-seeds
@@ -145,9 +195,9 @@ Examples:
     
     parser.add_argument(
         "--mode",
-        choices=["generate", "execute", "verify"],
-        default="generate",
-        help="Operation mode (default: generate)"
+        choices=["generate", "execute", "verify", "pipeline"],
+        default="pipeline",
+        help="Operation mode (default: pipeline)"
     )
     
     parser.add_argument(
@@ -161,6 +211,13 @@ Examples:
         type=str,
         default="data/generated",
         help="Output directory (default: data/generated)"
+    )
+    
+    # Pipeline-specific arguments
+    parser.add_argument(
+        "--samples",
+        type=int,
+        help="Number of samples to generate (pipeline mode)"
     )
     
     # Generation-specific arguments
@@ -223,6 +280,8 @@ Examples:
         return execute_mode(args)  
     elif args.mode == "verify":
         return verify_mode(args)
+    elif args.mode == "pipeline":
+        return pipeline_mode(args)
     
     return 0
 

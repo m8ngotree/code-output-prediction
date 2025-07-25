@@ -4,35 +4,47 @@ A Python project for generating synthetic datasets where LLMs predict code execu
 
 ## Features
 
-- **Seed Management System**: Manages application and programming concept seeds for code generation
-- **AI-Powered Code Generation**: Uses OpenAI's GPT-4 to generate complex Python programs
-- **Post-Processing Pipeline**: Ensures generated code is executable with proper imports and structure
-- **Metadata Tracking**: Comprehensive tracking of generation parameters, timing, and statistics
-- **Configurable**: Fully customizable via YAML configuration files
-- **Batch Generation**: Generate multiple code examples efficiently
+- **🔄 Complete End-to-End Pipeline**: Orchestrates code generation, input generation, and execution
+- **🌱 Seed Management System**: Manages application and programming concept seeds for code generation
+- **🤖 AI-Powered Code Generation**: Uses OpenAI's GPT-4 to generate complex Python programs
+- **🎯 Smart Input Generation**: AST-based analysis to generate diverse test inputs
+- **🔒 Secure Code Execution**: Safe execution with timeouts and resource limits
+- **📊 Progress Tracking**: Real-time progress bars and comprehensive statistics
+- **💾 Resume Capability**: Resume interrupted runs from any point
+- **⚙️ Configurable**: Fully customizable via YAML configuration files
+- **📈 Rich Metadata**: Comprehensive tracking of generation parameters, timing, and statistics
 
 ## Project Structure
 
 ```
 code-output-prediction/
 ├── src/
+│   ├── pipeline.py              # 🔄 Main pipeline controller
 │   ├── generators/
-│   │   ├── code_generator.py    # Main code generation engine
+│   │   ├── code_generator.py    # 🤖 AI code generation engine
+│   │   ├── input_generator.py   # 🎯 Smart input generation
 │   │   └── example_usage.py     # Usage examples
+│   ├── executors/
+│   │   ├── python_executor.py   # 🔒 Secure code execution
+│   │   └── executor_example.py  # Executor examples
 │   ├── seeds/
-│   │   └── seed_manager.py      # Seed data management
-│   ├── executors/               # Code execution (future)
+│   │   └── seed_manager.py      # 🌱 Seed data management
 │   ├── verifiers/               # Output verification (future)
 │   └── utils/                   # Utility functions
 ├── data/
 │   ├── seeds/                   # Seed data (applications, concepts)
 │   ├── generated/               # Generated code examples
+│   ├── inputs/                  # Generated test inputs
+│   ├── pipeline_results/        # Complete pipeline outputs
 │   └── datasets/                # Final datasets
 ├── configs/
-│   └── code_generator.yaml      # Configuration file
-├── tests/                       # Unit tests
+│   ├── pipeline.yaml            # 🔄 Pipeline configuration
+│   ├── code_generator.yaml      # Code generation settings
+│   └── python_executor.yaml     # Execution settings
+├── tests/                       # Comprehensive unit tests
 ├── requirements.txt             # Python dependencies
-└── main.py                     # CLI entry point
+├── main.py                     # CLI entry point
+└── pipeline_example.py         # Pipeline demonstration
 ```
 
 ## Installation
@@ -64,6 +76,36 @@ code-output-prediction/
    ```
 
 ## Quick Start
+
+### 🚀 Complete Pipeline (Recommended)
+
+Run the end-to-end pipeline to generate synthetic datasets:
+
+```bash
+# Generate 10 code samples with inputs and execution results
+python main.py --mode pipeline --samples 10
+
+# Use custom configuration and output directory
+python main.py --mode pipeline --samples 20 --config configs/pipeline.yaml --output results/experiment1
+
+# Resume an interrupted run
+python main.py --mode pipeline --samples 50 --output results/experiment1
+```
+
+**Pipeline Output:**
+- `data/pipeline_results/complete_dataset.json` - Final consolidated dataset
+- `data/pipeline_results/sample_XXXX.json` - Individual sample results
+- `data/pipeline_results/pipeline_statistics.json` - Performance metrics
+- `data/pipeline_results/pipeline_state.json` - Resume state
+
+### 📊 What the Pipeline Does
+
+1. **🤖 Code Generation**: Uses GPT-4 to generate Python programs from random seed combinations
+2. **🎯 Input Generation**: Analyzes code to generate diverse test inputs (normal, edge, boundary cases)
+3. **⚡ Secure Execution**: Runs code with all inputs in isolated processes with timeouts
+4. **💾 Data Collection**: Stores code, inputs, outputs, and metadata in structured format
+
+### 🔧 Individual Components
 
 ### Using the SeedManager
 
