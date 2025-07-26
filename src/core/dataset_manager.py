@@ -52,7 +52,10 @@ class DatasetManager:
         samples: List[Dict[str, Any]], 
         dataset_name: str,
         description: str = "",
-        split_ratios: Tuple[float, float, float] = (0.8, 0.1, 0.1)
+        split_ratios: Tuple[float, float, float] = (0.8, 0.1, 0.1),
+        strategy: str = "all",
+        base_model_predictions: Optional[List[Dict[str, Any]]] = None,
+        error_ratio: float = 0.7
     ) -> DatasetDict:
         """
         Convert code execution samples into a structured training dataset.
@@ -62,6 +65,9 @@ class DatasetManager:
             dataset_name: Name for the dataset
             description: Description of the dataset
             split_ratios: Train/validation/test split ratios
+            strategy: Dataset creation strategy ("all", "errors", "stratified")
+            base_model_predictions: Predictions from base model for error filtering
+            error_ratio: Ratio of error examples in stratified strategy
             
         Returns:
             DatasetDict with train/validation/test splits
@@ -126,6 +132,11 @@ class DatasetManager:
         
         if not training_examples:
             raise ValueError("No valid training examples found in samples")
+        
+        # Apply dataset creation strategy
+        if strategy != "all" and base_model_predictions:
+            training_examples = self._apply_strategy(training_examples, base_model_predictions, strategy, error_ratio)
+            logger.info(f"After {strategy} strategy: {len(training_examples)} examples")
         
         # Create HuggingFace Dataset
         dataset = Dataset.from_list(training_examples)
@@ -327,4 +338,98 @@ Output:"""
         df.to_csv(csv_path, index=False)
         
         logger.info(f"Exported {split} split to {csv_path}")
-        return str(csv_path) 
+        return str(csv_path)
+    
+    def _apply_strategy(self, training_examples: List[Dict[str, Any]], 
+                       base_model_predictions: List[Dict[str, Any]], 
+                       strategy: str, error_ratio: float) -> List[Dict[str, Any]]:
+        """Apply dataset creation strategy to filter training examples."""
+        from .verifier import OutputVerifier
+        verifier = OutputVerifier()
+        
+        # Match examples with predictions
+        error_examples = []
+        correct_examples = []
+        
+        for example, prediction in zip(training_examples, base_model_predictions):
+            is_correct = verifier.verify(
+                example["expected_output"], 
+                prediction.get("predicted_output", ""), 
+                "exact"
+            )["is_correct"]
+            
+            if is_correct:
+                correct_examples.append(example)
+            else:
+                error_examples.append(example)
+        
+        if strategy == "errors":
+            return error_examples
+        elif strategy == "stratified":
+            return self._create_stratified_dataset(error_examples, correct_examples, error_ratio)
+        else:
+            return training_examples
+    
+    def _create_stratified_dataset(self, error_examples: List[Dict[str, Any]], 
+                                  correct_examples: List[Dict[str, Any]], 
+                                  error_ratio: float) -> List[Dict[str, Any]]:
+        """Create stratified dataset with specified error ratio."""
+        import random
+        
+        total_errors = len(error_examples)
+        if total_errors == 0:
+            return correct_examples
+        
+        # Calculate how many correct examples to include
+        target_correct = int(total_errors * (1 - error_ratio) / error_ratio)
+        
+        # Sample correct examples if we have more than needed
+        if len(correct_examples) > target_correct:
+            sampled_correct = random.sample(correct_examples, target_correct)
+        else:
+            sampled_correct = correct_examples
+        
+        return error_examples + sampled_correct
+    
+    def evaluate_base_model(self, model, tokenizer, samples: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Evaluate base model on samples to identify errors."""
+        import torch
+        from tqdm import tqdm
+        
+        predictions = []
+        
+        for sample in tqdm(samples, desc="Evaluating base model"):
+            # Create instruction prompt
+            prompt = self._create_instruction_prompt(
+                sample["generation"]["code"],
+                sample["generation"]["language"],
+                sample["execution_results"][0].get("input_used", "")
+            )
+            
+            # Generate prediction
+            inputs = tokenizer.encode(prompt, return_tensors="pt")
+            with torch.no_grad():
+                outputs = model.generate(
+                    inputs,
+                    max_new_tokens=256,
+                    temperature=0.1,
+                    do_sample=False,
+                    pad_token_id=tokenizer.eos_token_id
+                )
+            
+            # Decode prediction
+            response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+            if response.startswith(prompt):
+                predicted_output = response[len(prompt):].strip()
+            else:
+                predicted_output = response.strip()
+            
+            predictions.append({
+                "sample_id": self._generate_sample_id(
+                    sample["generation"]["code"], 
+                    sample["execution_results"][0].get("input_used", "")
+                ),
+                "predicted_output": predicted_output
+            })
+        
+        return predictions 

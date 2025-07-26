@@ -148,12 +148,19 @@ class TrainingCLI:
             output_dir=args.output_dir,
             dataset_name=args.dataset_name,
             use_wandb=args.use_wandb,
-            run_name=args.run_name
+            run_name=args.run_name,
+            dataset_strategy=args.dataset_strategy,
+            error_ratio=args.error_ratio,
+            evaluate_base_model=args.evaluate_base_model
         )
         
         print(f"📋 Configuration:")
         print(f"   Model: {config.model_key}")
         print(f"   Dataset: {config.dataset_name}")
+        print(f"   Dataset Strategy: {config.dataset_strategy}")
+        if config.dataset_strategy == "stratified":
+            print(f"   Error Ratio: {config.error_ratio}")
+        print(f"   Evaluate Base Model: {config.evaluate_base_model}")
         print(f"   Epochs: {config.num_epochs}")
         print(f"   Batch Size: {config.batch_size}")
         print(f"   Learning Rate: {config.learning_rate}")
@@ -302,6 +309,9 @@ Examples:
   
   # Use custom model from HuggingFace
   python train.py train-supervised --model custom --custom-model-id microsoft/DialoGPT-medium
+  
+  # Error-focused supervised training
+  python train.py train-supervised --model phi-2 --dataset-strategy errors --evaluate-base-model
         """
     )
     
@@ -349,6 +359,12 @@ Examples:
     add_training_args(sup_parser)
     sup_parser.add_argument('--epochs', type=int, default=3, help='Number of training epochs')
     sup_parser.add_argument('--use-wandb', action='store_true', help='Use Weights & Biases logging')
+    sup_parser.add_argument('--dataset-strategy', choices=['all', 'errors', 'stratified'], 
+                           default='all', help='Dataset creation strategy')
+    sup_parser.add_argument('--error-ratio', type=float, default=0.7,
+                           help='Ratio of error examples in stratified strategy')
+    sup_parser.add_argument('--evaluate-base-model', action='store_true',
+                           help='Evaluate base model to identify errors for focused training')
     
     # RL training command
     rl_parser = subparsers.add_parser('train-rl', help='Run RL training')

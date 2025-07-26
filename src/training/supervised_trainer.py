@@ -7,7 +7,7 @@ on generated datasets.
 
 import os
 import logging
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, List
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -66,6 +66,9 @@ class SupervisedTrainingConfig:
     # Data configuration
     dataset_name: str = "code_prediction_dataset"
     test_size: float = 0.1
+    dataset_strategy: str = "all"  # "all", "errors", "stratified"
+    error_ratio: float = 0.7  # For stratified strategy
+    evaluate_base_model: bool = False  # Enable error-focused training
 
 
 class SupervisedTrainer:
@@ -347,4 +350,54 @@ class SupervisedTrainer:
         results = trainer.evaluate(eval_dataset=tokenized_dataset["test"])
         
         logger.info(f"Evaluation results: {results}")
-        return results 
+        return results
+    
+    def create_error_focused_dataset(self, samples: List[Dict[str, Any]], 
+                                   dataset_name: str,
+                                   description: str = "") -> Dict[str, Any]:
+        """
+        Create error-focused dataset from samples using base model evaluation.
+        
+        Args:
+            samples: Raw samples from code generation
+            dataset_name: Name for the created dataset
+            description: Dataset description
+            
+        Returns:
+            Dataset creation results
+        """
+        logger.info(f"Creating error-focused dataset: {dataset_name}")
+        
+        base_model_predictions = None
+        if self.config.dataset_strategy != "all" and self.config.evaluate_base_model:
+            logger.info("Evaluating base model to identify errors...")
+            
+            # Load base model for evaluation
+            model, tokenizer = self.model_manager.load_model_and_tokenizer(
+                self.config.model_key,
+                self.config.custom_model_id
+            )
+            
+            # Evaluate base model on samples
+            base_model_predictions = self.dataset_manager.evaluate_base_model(
+                model, tokenizer, samples
+            )
+            
+            logger.info(f"Base model evaluation complete")
+        
+        # Create dataset with specified strategy
+        dataset = self.dataset_manager.create_dataset_from_samples(
+            samples=samples,
+            dataset_name=dataset_name,
+            description=description,
+            strategy=self.config.dataset_strategy,
+            base_model_predictions=base_model_predictions,
+            error_ratio=self.config.error_ratio
+        )
+        
+        return {
+            "dataset_name": dataset_name,
+            "strategy": self.config.dataset_strategy,
+            "total_examples": len(dataset["train"]) + len(dataset["validation"]) + len(dataset["test"]),
+            "train_examples": len(dataset["train"])
+        } 
