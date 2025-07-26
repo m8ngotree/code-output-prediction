@@ -223,9 +223,9 @@ dm.export_to_csv('my_dataset', 'train')
 │   │   └── training_pipeline.py # Complete pipeline orchestration
 │   ├── generators/           # Code generation
 │   └── executors/           # Code execution
-├── main.py                  # Original code generation system
-├── train.py                # New comprehensive training CLI
-└── llm_trainer.py          # Legacy evaluation system
+├── main.py                  # Code generation and execution system
+├── train.py                # Comprehensive training CLI
+└── validate_installation.py # Installation validation
 ```
 
 ## ⚙️ Configuration
