@@ -1,256 +1,340 @@
-# Code Output Prediction
+# Code Output Prediction Training System
 
-A Python project for generating synthetic datasets where LLMs predict code execution outputs using OpenAI's GPT-4.
+A comprehensive system for training open-source Large Language Models (LLMs) to predict code execution outputs using **supervised fine-tuning** and **reinforcement learning with verification rewards**.
 
-## Features
+## 🎯 Overview
 
-- **🔄 Complete End-to-End Pipeline**: Orchestrates code generation, input generation, and execution
-- **🌱 Seed Management System**: Manages application and programming concept seeds for code generation
-- **🤖 AI-Powered Code Generation**: Uses OpenAI's GPT-4 to generate complex Python programs
-- **🎯 Smart Input Generation**: AST-based analysis to generate diverse test inputs
-- **🔒 Secure Code Execution**: Safe execution with timeouts and resource limits
-- **📊 Progress Tracking**: Real-time progress bars and comprehensive statistics
-- **💾 Resume Capability**: Resume interrupted runs from any point
-- **⚙️ Configurable**: Fully customizable via YAML configuration files
-- **📈 Rich Metadata**: Comprehensive tracking of generation parameters, timing, and statistics
+This system implements a complete pipeline for training models to predict the exact output of code execution:
 
-## Project Structure
+1. **📊 Data Generation**: Generates diverse code examples with test inputs and verified outputs
+2. **🎯 Supervised Fine-tuning**: Trains models using standard supervised learning on code-output pairs  
+3. **🚀 Reinforcement Learning**: Uses verification-based rewards to improve prediction accuracy
+4. **📈 Evaluation**: Comprehensive evaluation metrics and model comparison tools
 
-```
-code-output-prediction/
-├── src/
-│   ├── pipeline.py              # 🔄 Main pipeline controller
-│   ├── generators/
-│   │   ├── code_generator.py    # 🤖 AI code generation engine
-│   │   ├── input_generator.py   # 🎯 Smart input generation
-│   │   └── example_usage.py     # Usage examples
-│   ├── executors/
-│   │   ├── python_executor.py   # 🔒 Secure code execution
-│   │   └── executor_example.py  # Executor examples
-│   ├── seeds/
-│   │   └── seed_manager.py      # 🌱 Seed data management
-│   ├── verifiers/               # Output verification (future)
-│   └── utils/                   # Utility functions
-├── data/
-│   ├── seeds/                   # Seed data (applications, concepts)
-│   ├── generated/               # Generated code examples
-│   ├── inputs/                  # Generated test inputs
-│   ├── pipeline_results/        # Complete pipeline outputs
-│   └── datasets/                # Final datasets
-├── configs/
-│   ├── pipeline.yaml            # 🔄 Pipeline configuration
-│   ├── code_generator.yaml      # Code generation settings
-│   └── python_executor.yaml     # Execution settings
-├── tests/                       # Comprehensive unit tests
-├── requirements.txt             # Python dependencies
-├── main.py                     # CLI entry point
-└── pipeline_example.py         # Pipeline demonstration
-```
+## ✨ Key Features
 
-## Installation
+- **🤖 Multiple Model Support**: Pre-configured support for popular open-source models (CodeLlama, DeepSeek Coder, StarCoder2, Phi-2, Mistral)
+- **🔧 Custom Model Support**: Easy integration of any HuggingFace model
+- **💾 Memory Efficient**: 4-bit quantization and LoRA fine-tuning for reduced memory usage
+- **📊 Dataset Management**: Structured dataset creation, storage, and management
+- **⚡ Parallel Training**: Optimized training pipelines with checkpointing and resumption
+- **📈 Comprehensive Evaluation**: Multiple metrics including exact match, fuzzy match, and reward-based evaluation
+- **🔄 Complete Pipeline**: End-to-end automation from data generation to trained models
+
+## ��️ Installation
+
+### System Requirements
+
+- **Python**: 3.8 or higher
+- **GPU**: CUDA-capable GPU with 8GB+ VRAM (recommended)
+- **Memory**: 16GB+ RAM recommended
+- **Storage**: 10GB+ free space for models and data
+
+### Quick Setup
 
 1. **Clone the repository**:
-   ```bash
-   git clone <repository-url>
-   cd code-output-prediction
-   ```
+```bash
+git clone <repository-url>
+cd code-output-prediction
+```
 
-2. **Create virtual environment** (recommended):
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
+2. **Create a virtual environment** (recommended):
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
 
 3. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+```bash
+pip install -r requirements.txt
+```
 
 4. **Set up OpenAI API key**:
-   ```bash
-   export OPENAI_API_KEY="your-api-key-here"
-   ```
-   Or create a `.env` file:
-   ```
-   OPENAI_API_KEY=your-api-key-here
-   ```
+```bash
+export OPENAI_API_KEY="your-api-key-here"
+```
 
-## Quick Start
+5. **Verify installation**:
+```bash
+python validate_installation.py
+```
 
-### 🚀 Complete Pipeline (Recommended)
+### Alternative Installation
 
-Run the end-to-end pipeline to generate synthetic datasets:
+For systems with specific requirements:
 
 ```bash
-# Generate 10 code samples with inputs and execution results
-python main.py --mode pipeline --samples 10
+# For CPU-only systems
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+pip install -r requirements.txt
 
-# Use custom configuration and output directory
-python main.py --mode pipeline --samples 20 --config configs/pipeline.yaml --output results/experiment1
-
-# Resume an interrupted run
-python main.py --mode pipeline --samples 50 --output results/experiment1
+# For CUDA 11.8
+pip install torch --index-url https://download.pytorch.org/whl/cu118
+pip install -r requirements.txt
 ```
 
-**Pipeline Output:**
-- `data/pipeline_results/complete_dataset.json` - Final consolidated dataset
-- `data/pipeline_results/sample_XXXX.json` - Individual sample results
-- `data/pipeline_results/pipeline_statistics.json` - Performance metrics
-- `data/pipeline_results/pipeline_state.json` - Resume state
+## 🚀 Quick Start
 
-### 📊 What the Pipeline Does
-
-1. **🤖 Code Generation**: Uses GPT-4 to generate Python programs from random seed combinations
-2. **🎯 Input Generation**: Analyzes code to generate diverse test inputs (normal, edge, boundary cases)
-3. **⚡ Secure Execution**: Runs code with all inputs in isolated processes with timeouts
-4. **💾 Data Collection**: Stores code, inputs, outputs, and metadata in structured format
-
-### 🔧 Individual Components
-
-### Using the SeedManager
-
-```python
-from src.seeds.seed_manager import SeedManager
-
-# Initialize seed manager
-manager = SeedManager()
-
-# Get available seeds
-apps = manager.get_all_seeds("applications")
-concepts = manager.get_all_seeds("concepts")
-
-# Sample random seeds
-sample_apps = manager.sample_seeds("applications", 3)
-sample_concepts = manager.sample_seeds("concepts", 3)
+### 1. List Available Models
+```bash
+python train.py list-models
 ```
 
-### Generating Code
-
-```python
-from src.generators.code_generator import CodeGenerator
-
-# Initialize generator (requires OpenAI API key)
-generator = CodeGenerator()
-
-# Generate single example
-result = generator.generate_code(
-    application="web scraping",
-    concept="recursion"
-)
-
-if result["success"]:
-    print(f"Generated code saved to: {result['files']['code']}")
-    print(result["code"])
-
-# Generate batch
-results = generator.generate_batch(count=5)
+### 2. Generate Training Data
+```bash
+python train.py generate-data --languages python javascript --num-samples 100
 ```
 
-## Configuration
+### 3. Run Complete Training Pipeline
+```bash
+python train.py full-pipeline --model phi-2 --languages python --num-samples 50
+```
 
-The system is configured via `configs/code_generator.yaml`:
+### 4. Evaluate Trained Models
+```bash
+python train.py evaluate --rl-path checkpoints/rl/final_model --dataset-name code_prediction_dataset
+```
 
-- **OpenAI Settings**: Model, temperature, token limits
-- **Generation Parameters**: Function count, code structure preferences
-- **Output Settings**: File naming, metadata inclusion
-- **Retry Logic**: API failure handling
+## 📋 Available Models
 
-## Current Implementation Status
+| Model | Size | Description | Memory (4-bit) |
+|-------|------|-------------|----------------|
+| `phi-2` | 2.7B | Microsoft Phi-2 - compact reasoning model | ~1.5GB |
+| `codellama-7b` | 7B | Meta's Code Llama - excellent for code | ~3.5GB |
+| `deepseek-coder-6.7b` | 6.7B | DeepSeek Coder - specialized for code | ~3.4GB |
+| `starcoder2-7b` | 7B | StarCoder2 - diverse programming languages | ~3.5GB |
+| `mistral-7b` | 7B | Mistral - excellent general reasoning | ~3.5GB |
 
-### ✅ Completed Components
+## 📖 Usage Guide
 
-1. **Seed Management System** (`src/seeds/seed_manager.py`)
-   - Load/save seed data from JSON files
-   - Sample seeds with/without replacement
-   - Add/remove seeds dynamically
-   - Full test coverage
+### Data Generation
 
-2. **Code Generator** (`src/generators/code_generator.py`)
-   - OpenAI GPT-4 integration
-   - Template-based prompt system
-   - Code post-processing and validation
-   - Metadata tracking and file persistence
-   - Retry logic for API failures
-   - Batch generation capabilities
-
-3. **Configuration System**
-   - YAML-based configuration
-   - Customizable prompts and parameters
-
-4. **Test Suite**
-   - Comprehensive unit tests
-   - Mock-based testing for API components
-
-### 🚧 Future Components
-
-- **Code Executors**: Run generated code and capture outputs
-- **Output Verifiers**: Validate execution results
-- **Dataset Builders**: Create training datasets from generated examples
-
-## Usage Examples
-
-### Command Line Interface
+Generate training datasets with diverse code examples:
 
 ```bash
-# Generate code with specific seeds
-python main.py --mode generate --application "web scraping" --concept "recursion"
+# Generate Python data
+python train.py generate-data --languages python --num-samples 200
 
-# Generate batch of examples
-python main.py --mode generate --count 10
+# Generate multi-language data
+python train.py generate-data --languages python javascript rust --num-samples 100
 
-# Use custom configuration
-python main.py --config custom_config.yaml --mode generate
+# Custom dataset name
+python train.py generate-data --languages python --num-samples 50 --dataset-name my_custom_dataset
 ```
 
-### Python API
+### Supervised Fine-tuning
 
-```python
-# See src/generators/example_usage.py for detailed examples
-python src/generators/example_usage.py
-```
-
-## Testing
-
-Run the test suite:
+Train models using supervised learning on code-output pairs:
 
 ```bash
-# Run all tests
-python -m unittest discover tests -v
+# Basic supervised training
+python train.py train-supervised --model phi-2 --dataset-name my_dataset
 
-# Run specific test modules
-python -m unittest tests.test_seed_manager -v
-python -m unittest tests.test_code_generator -v
+# Custom hyperparameters
+python train.py train-supervised \
+    --model codellama-7b \
+    --dataset-name my_dataset \
+    --epochs 5 \
+    --batch-size 2 \
+    --learning-rate 1e-4
+
+# With experiment tracking
+python train.py train-supervised --model phi-2 --use-wandb --run-name "phi2-experiment-1"
 ```
 
-## Data
+### Reinforcement Learning
 
-### Seed Data
+Improve models using verification-based rewards:
 
-The system includes predefined seeds in `data/seeds/`:
+```bash
+# RL training from supervised checkpoint
+python train.py train-rl \
+    --model phi-2 \
+    --dataset-name my_dataset \
+    --base-model-path checkpoints/supervised \
+    --episodes 1000
 
-- **Applications** (10 types): web scraping, data analysis, game development, cryptography, etc.
-- **Concepts** (10 types): recursion, dynamic programming, graph algorithms, etc.
+# RL from base model
+python train.py train-rl --model phi-2 --dataset-name my_dataset --episodes 500
+```
 
-### Generated Examples
+### Complete Pipeline
 
-Generated code is saved to `data/generated/` with:
-- Python source files
-- JSON metadata files with generation details
+Run the entire training pipeline in one command:
 
-## Contributing
+```bash
+# Full pipeline with default settings
+python train.py full-pipeline --model phi-2 --languages python --num-samples 100
 
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
-4. Ensure all tests pass
-5. Submit a pull request
+# Advanced pipeline configuration
+python train.py full-pipeline \
+    --model codellama-7b \
+    --languages python javascript \
+    --num-samples 200 \
+    --epochs 3 \
+    --rl-episodes 1000 \
+    --batch-size 4 \
+    --output-dir my_training_run \
+    --run-name "codellama-multi-lang"
 
-## License
+# Skip specific stages
+python train.py full-pipeline --model phi-2 --skip-rl  # Only supervised training
+python train.py full-pipeline --model phi-2 --skip-supervised  # Only RL training
+```
 
-[Add your license here]
+### Custom Models
 
-## Requirements
+Use any HuggingFace model:
 
-- Python 3.8+
-- OpenAI API key
-- See `requirements.txt` for full dependency list
+```bash
+# Use custom model for training
+python train.py train-supervised \
+    --model custom \
+    --custom-model-id microsoft/DialoGPT-medium \
+    --dataset-name my_dataset
+```
+
+### Dataset Management
+
+```bash
+# List available datasets
+python train.py list-datasets
+
+# Export dataset to CSV for analysis
+python -c "
+from src.core.dataset_manager import DatasetManager
+dm = DatasetManager()
+dm.export_to_csv('my_dataset', 'train')
+"
+```
+
+## 🏗️ System Architecture
+
+```
+├── src/
+│   ├── core/                 # Core system components
+│   │   ├── model_manager.py  # HuggingFace model management
+│   │   ├── dataset_manager.py # Dataset creation and management
+│   │   ├── verifier.py       # Output verification logic
+│   │   └── language_factory.py # Multi-language support
+│   ├── training/             # Training implementations
+│   │   ├── supervised_trainer.py # Supervised fine-tuning
+│   │   ├── rl_trainer.py     # Reinforcement learning
+│   │   └── training_pipeline.py # Complete pipeline orchestration
+│   ├── generators/           # Code generation
+│   └── executors/           # Code execution
+├── main.py                  # Original code generation system
+├── train.py                # New comprehensive training CLI
+└── llm_trainer.py          # Legacy evaluation system
+```
+
+## ⚙️ Configuration
+
+### Training Configuration
+
+Key hyperparameters can be configured:
+
+**Supervised Training**:
+- `epochs`: Number of training epochs (default: 3)
+- `batch_size`: Training batch size (default: 4) 
+- `learning_rate`: Learning rate (default: 2e-4)
+- `lora_rank`: LoRA rank for parameter-efficient training (default: 64)
+
+**RL Training**:
+- `episodes`: Number of RL episodes (default: 500)
+- `batch_size`: RL batch size (default: 4)
+- `learning_rate`: RL learning rate (default: 1.4e-5)
+- `exact_match_reward`: Reward for exact output match (default: 10.0)
+- `close_match_reward`: Reward for close output match (default: 5.0)
+
+### Memory Optimization
+
+The system automatically applies memory optimizations:
+
+- **4-bit Quantization**: Reduces memory usage by ~75%
+- **LoRA Fine-tuning**: Only trains 0.1-1% of parameters
+- **Gradient Checkpointing**: Trades compute for memory
+- **Dynamic Batching**: Adjusts batch size based on available memory
+
+## 📊 Evaluation Metrics
+
+The system provides comprehensive evaluation:
+
+- **Exact Accuracy**: Percentage of exactly correct predictions
+- **Close Accuracy**: Percentage of approximately correct predictions (fuzzy matching)
+- **Average Reward**: Mean reward score from verification system
+- **Loss Metrics**: Standard training/validation loss
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+**1. CUDA Out of Memory**:
+```bash
+# Reduce batch size
+python train.py train-supervised --batch-size 1
+
+# Use smaller model
+python train.py train-supervised --model phi-2
+```
+
+**2. Missing Dependencies**:
+```bash
+# Install missing packages
+pip install torch transformers datasets accelerate peft bitsandbytes trl
+```
+
+**3. OpenAI API Errors**:
+```bash
+# Verify API key
+echo $OPENAI_API_KEY
+
+# Set API key
+export OPENAI_API_KEY="your-key-here"
+```
+
+### Performance Tips
+
+1. **Use GPU**: Training is significantly faster with CUDA
+2. **Batch Size**: Start with smaller batch sizes and increase gradually
+3. **Model Size**: Begin with smaller models (phi-2) for experimentation
+4. **LoRA Parameters**: Lower rank reduces memory but may impact quality
+
+## 🤝 Contributing
+
+Contributions are welcome! Areas for improvement:
+
+- Additional programming languages
+- More sophisticated reward functions
+- Better evaluation metrics
+- Memory optimization techniques
+- Model architectures
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- **HuggingFace**: For the transformers library and model hosting
+- **OpenAI**: For the API used in data generation
+- **Meta**: For Code Llama models
+- **Microsoft**: For Phi-2 model
+- **DeepSeek**: For specialized code models
+
+## 📚 Citation
+
+If you use this system in your research, please cite:
+
+```bibtex
+@software{code_output_prediction,
+  title={Code Output Prediction Training System},
+  author={Your Name},
+  year={2024},
+  url={https://github.com/your-repo/code-output-prediction}
+}
+```
+
+---
+
+**Ready to train your own code prediction models? Start with the Quick Start guide above!** 🚀

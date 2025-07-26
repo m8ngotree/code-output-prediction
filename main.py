@@ -1,297 +1,340 @@
 #!/usr/bin/env python3
 """
-Main entry point for the code-output-prediction project.
+Code Output Prediction System - Main Entry Point
+
+A streamlined system for generating Python code using OpenAI's API,
+executing it safely, and verifying outputs.
 """
 
-import argparse
+import json
 import os
 import sys
 from pathlib import Path
+from typing import Dict, Any, List
+import pickle
+from datetime import datetime
 
-# Try to load environment variables from .env file if available
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except ImportError:
-    # dotenv not installed, continue without it
-    pass
-
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent / "src"))
-
-# Initialize configuration system
-from src.utils.config import init_config
-config = init_config(
-    config_file="configs/config.yaml",
-    environment=os.getenv("ENVIRONMENT", "development")
-)
+from tqdm import tqdm
+from src.core.language_factory import LanguageFactory
+from src.core.verifier import OutputVerifier
 
 
-def generate_mode(args):
-    """Handle generate mode - create synthetic code examples."""
-    try:
-        from src.generators.code_generator import CodeGenerator
-        from src.seeds.seed_manager import SeedManager
+class CodePredictionSystem:
+    """
+    Main system orchestrating code generation, execution, and verification.
+    
+    This class provides a complete pipeline for:
+    - Generating code samples using language-specific generators
+    - Executing code safely in isolated environments
+    - Verifying outputs and managing results
+    - Supporting checkpointing for long-running batch operations
+    """
+    
+    def __init__(self, api_key: str, language: str = "python"):
+        """
+        Initialize the system components.
         
-        print("🚀 Starting code generation...")
+        Args:
+            api_key (str): OpenAI API key for code generation
+            language (str): Programming language to generate (default: "python")
+        """
+        self.language = language
+        self.generator, self.executor = LanguageFactory.create_generator_and_executor(language, api_key)
+        self.verifier = OutputVerifier()
+        self.output_dir = Path("output")
+        self.output_dir.mkdir(exist_ok=True)
+        self.checkpoint_dir = Path("checkpoints")
+        self.checkpoint_dir.mkdir(exist_ok=True)
+    
+    def generate_single_sample(self) -> Dict[str, Any]:
+        """
+        Generate, execute, and verify a single code sample with multiple test inputs.
         
-        # Check for API key
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            print("❌ Error: OPENAI_API_KEY environment variable not set")
-            print("Please set your OpenAI API key:")
-            print("  export OPENAI_API_KEY='your-api-key-here'")
-            return 1
+        Returns:
+            Dict[str, Any]: Complete sample result including generation, execution, and verification
+        """
+        # Generate code with test inputs
+        result = self.generator.generate_code()
+        if not result["success"]:
+            return result
         
-        # Initialize generator
-        generator = CodeGenerator(config_path=args.config, api_key=api_key)
-        print("✅ CodeGenerator initialized successfully")
+        # Execute code with each test input
+        execution_results = []
+        test_inputs = result.get("test_inputs", [])
         
-        if args.count and args.count > 1:
-            # Batch generation
-            print(f"📝 Generating {args.count} code examples...")
-            results = generator.generate_batch(args.count)
-            
-            successful = sum(1 for r in results if r.get("success", False))
-            print(f"✅ Generated {successful}/{len(results)} examples successfully")
-            
-            for i, result in enumerate(results, 1):
-                if result.get("success"):
-                    seeds = result["seeds_used"]
-                    print(f"  {i}. {seeds['application']} + {seeds['concept']}")
-                else:
-                    print(f"  {i}. ❌ Failed: {result.get('error', 'Unknown error')}")
-        
+        if test_inputs:
+            # Use progress bar for test execution
+            test_bar = tqdm(test_inputs, desc="Running tests", leave=False)
+            for test_input in test_bar:
+                test_bar.set_postfix_str(test_input['description'][:30])
+                execution_result = self.executor.execute(result["code"], test_input["value"])
+                execution_result["test_description"] = test_input["description"]
+                execution_result["input_used"] = test_input["value"]
+                execution_results.append(execution_result)
         else:
-            # Single generation
-            print("📝 Generating single code example...")
-            result = generator.generate_code(
-                application=args.application,
-                concept=args.concept
-            )
+            # Fallback: execute without input
+            execution_result = self.executor.execute(result["code"])
+            execution_result["test_description"] = "No input test"
+            execution_result["input_used"] = None
+            execution_results.append(execution_result)
+        
+        # Check if any execution was successful
+        any_success = any(exec_result["success"] for exec_result in execution_results)
+        
+        # Combine results
+        sample = {
+            "generation": result,
+            "execution_results": execution_results,
+            "success": result["success"] and any_success
+        }
+        
+        return sample
+    
+    def generate_batch(self, count: int, checkpoint_interval: int = 10, resume: bool = False) -> List[Dict[str, Any]]:
+        """
+        Generate multiple code samples with progress tracking and checkpointing.
+        
+        Args:
+            count (int): Total number of samples to generate
+            checkpoint_interval (int): Save checkpoint every N samples (default: 10)
+            resume (bool): Whether to resume from existing checkpoint (default: False)
+        
+        Returns:
+            List[Dict[str, Any]]: List of generated samples
+        """
+        samples = []
+        successful = 0
+        start_index = 0
+        
+        # Load checkpoint if resuming
+        checkpoint_file = self.checkpoint_dir / f"batch_{self.language}_{count}.pkl"
+        if resume and checkpoint_file.exists():
+            checkpoint_data = self._load_checkpoint(checkpoint_file)
+            samples = checkpoint_data["samples"]
+            successful = checkpoint_data["successful"]
+            start_index = len(samples)
+            print(f"Resuming from checkpoint: {start_index}/{count} samples completed")
+        
+        # Generate remaining samples with progress bar
+        remaining = count - start_index
+        if remaining > 0:
+            progress_bar = tqdm(range(start_index, count), 
+                              desc=f"Generating {self.language} samples",
+                              initial=start_index, 
+                              total=count)
             
-            if result["success"]:
-                print("✅ Code generated successfully!")
-                print(f"📁 Code saved to: {result['files']['code']}")
-                print(f"📄 Metadata saved to: {result['files']['metadata']}")
-                print(f"🌱 Seeds used: {result['seeds_used']}")
-                print(f"📊 Code stats: {result['metadata']['code_stats']}")
+            for i in progress_bar:
+                sample = self.generate_single_sample()
+                samples.append(sample)
                 
-                if args.preview:
-                    print("\n--- Generated Code Preview ---")
-                    code = result["code"]
-                    preview = code[:500] + "..." if len(code) > 500 else code
-                    print(preview)
-            else:
-                print(f"❌ Generation failed: {result['error']}")
-                return 1
+                if sample["success"]:
+                    successful += 1
+                    # Save successful sample
+                    self._save_sample(sample, i)
+                
+                # Update progress bar with current stats
+                progress_bar.set_postfix({
+                    'success': f"{successful}/{len(samples)}",
+                    'rate': f"{(successful/len(samples)*100):.1f}%"
+                })
+                
+                # Save checkpoint periodically
+                if (i + 1) % checkpoint_interval == 0:
+                    self._save_checkpoint(checkpoint_file, samples, successful)
         
-        # Show statistics
-        if args.stats:
-            print("\n📊 Generation Statistics:")
-            stats = generator.get_generation_stats()
-            print(f"  Total files: {stats['total_files']}")
-            print(f"  Total lines: {stats['total_lines']}")
-            print(f"  Total functions: {stats['total_functions']}")
+        # Save final checkpoint and cleanup
+        if checkpoint_file.exists():
+            checkpoint_file.unlink()  # Remove checkpoint when complete
         
-        return 0
+        return samples
+    
+    def _save_checkpoint(self, checkpoint_file: Path, samples: List[Dict[str, Any]], successful: int):
+        """
+        Save current progress to checkpoint file.
         
-    except ImportError as e:
-        print(f"❌ Import error: {e}")
-        print("Make sure all dependencies are installed: pip install -r requirements.txt")
-        return 1
-    except Exception as e:
-        print(f"❌ Error during code generation: {e}")
-        return 1
-
-
-def execute_mode(args):
-    """Handle execute mode - run generated code and capture outputs."""
-    print("⚙️ Execute mode not yet implemented")
-    print("This will run generated code and capture outputs for dataset creation")
-    return 0
-
-
-def verify_mode(args):
-    """Handle verify mode - validate generated outputs."""
-    print("🔍 Verify mode not yet implemented") 
-    print("This will validate generated code outputs and create verification datasets")
-    return 0
-
-
-def list_seeds():
-    """List available seeds."""
-    try:
-        from src.seeds.seed_manager import SeedManager
+        Args:
+            checkpoint_file (Path): Path to checkpoint file
+            samples (List[Dict[str, Any]]): Current samples
+            successful (int): Number of successful samples
+        """
+        checkpoint_data = {
+            "timestamp": datetime.now().isoformat(),
+            "language": self.language,
+            "samples": samples,
+            "successful": successful,
+            "total_attempted": len(samples)
+        }
         
-        manager = SeedManager()
-        print("🌱 Available Seeds:")
+        with open(checkpoint_file, 'wb') as f:
+            pickle.dump(checkpoint_data, f)
+    
+    def _load_checkpoint(self, checkpoint_file: Path) -> Dict[str, Any]:
+        """
+        Load checkpoint data from file.
         
-        apps = manager.get_all_seeds("applications")
-        concepts = manager.get_all_seeds("concepts")
-        
-        print(f"\n📱 Applications ({len(apps)}):")
-        for i, app in enumerate(apps, 1):
-            print(f"  {i:2d}. {app}")
-        
-        print(f"\n🧠 Concepts ({len(concepts)}):")
-        for i, concept in enumerate(concepts, 1):
-            print(f"  {i:2d}. {concept}")
+        Args:
+            checkpoint_file (Path): Path to checkpoint file
             
-    except ImportError as e:
-        print(f"❌ Import error: {e}")
-    except Exception as e:
-        print(f"❌ Error listing seeds: {e}")
-
-
-def pipeline_mode(args):
-    """Handle pipeline mode - run complete end-to-end pipeline."""
-    try:
-        from src.pipeline import CodeOutputPredictionPipeline
+        Returns:
+            Dict[str, Any]: Checkpoint data
+        """
+        with open(checkpoint_file, 'rb') as f:
+            return pickle.load(f)
+    
+    def _save_sample(self, sample: Dict[str, Any], index: int):
+        """
+        Save a sample to the output directory with comprehensive metadata.
         
-        print("🚀 Starting complete pipeline...")
+        Args:
+            sample (Dict[str, Any]): Sample data to save
+            index (int): Sample index for filename generation
+        """
+        filename = f"sample_{index:04d}.json"
+        filepath = self.output_dir / filename
         
-        # Initialize pipeline
-        pipeline = CodeOutputPredictionPipeline(config_path=args.config)
+        with open(filepath, 'w') as f:
+            json.dump(sample, f, indent=2)
         
-        # Override config with CLI arguments
-        if args.samples:
-            pipeline.config.config["pipeline"]["num_samples"] = args.samples
+        # Also save the code separately for easy viewing
+        language = sample["generation"]["language"]
+        extension = self._get_file_extension(language)
+        code_filename = f"sample_{index:04d}.{extension}"
+        code_filepath = self.output_dir / code_filename
         
-        if args.output:
-            pipeline.config.config["pipeline"]["output_dir"] = args.output
-            pipeline.output_dir = Path(args.output)
-            pipeline.output_dir.mkdir(parents=True, exist_ok=True)
+        with open(code_filepath, 'w') as f:
+            f.write(sample["generation"]["code"])
         
-        # Run complete pipeline
-        success = pipeline.run_pipeline()
+        # Also save a summary of execution results for easy viewing
+        summary_filename = f"sample_{index:04d}_summary.txt"
+        summary_filepath = self.output_dir / summary_filename
         
-        if success:
-            print("🎉 Pipeline completed successfully!")
-            return 0
-        else:
-            print("❌ Pipeline failed!")
-            return 1
+        with open(summary_filepath, 'w') as f:
+            f.write(f"Language: {sample['generation']['language']}\n")
+            f.write(f"Application: {sample['generation']['application']}\n")
+            f.write(f"Concept: {sample['generation']['concept']}\n")
+            f.write(f"Success: {sample['success']}\n\n")
             
-    except ImportError as e:
-        print(f"❌ Import error: {e}")
-        print("Make sure all dependencies are installed: pip install -r requirements.txt")
-        return 1
-    except Exception as e:
-        print(f"❌ Error during pipeline execution: {e}")
-        return 1
+            f.write("EXECUTION RESULTS:\n")
+            f.write("=" * 50 + "\n")
+            
+            for i, exec_result in enumerate(sample["execution_results"], 1):
+                f.write(f"\nTest {i}: {exec_result['test_description']}\n")
+                f.write(f"Input: {exec_result['input_used']}\n")
+                f.write(f"Success: {exec_result['success']}\n")
+                if exec_result['success']:
+                    f.write(f"Output: {exec_result['output']}\n")
+                else:
+                    f.write(f"Error: {exec_result['error']}\n")
+    
+    def _get_file_extension(self, language: str) -> str:
+        """
+        Get file extension for programming language.
+        
+        Args:
+            language (str): Programming language name
+            
+        Returns:
+            str: File extension for the language
+        """
+        extensions = {
+            "python": "py",
+            "javascript": "js", 
+            "rust": "rs",
+            "cpp": "cpp"
+        }
+        return extensions.get(language, "txt")
 
 
 def main():
-    """Main function to run the code output prediction system."""
-    parser = argparse.ArgumentParser(
-        description="Generate synthetic datasets for LLM code execution prediction",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  # Run complete pipeline
-  python main.py --mode pipeline --samples 10 --config configs/pipeline.yaml
-  
-  # Individual components
-  python main.py --mode generate --count 5
-  python main.py --mode generate --application "web scraping" --concept "recursion"
-  python main.py --list-seeds
-  python main.py --mode generate --preview --stats
-        """
-    )
+    """
+    Main entry point with enhanced argument parsing and checkpoint support.
     
-    parser.add_argument(
-        "--mode",
-        choices=["generate", "execute", "verify", "pipeline"],
-        default="pipeline",
-        help="Operation mode (default: pipeline)"
-    )
+    Usage: python main.py [api_key] [language] [count] [--resume] [--checkpoint-interval N]
+    """
+    # Parse command line arguments
+    api_key = os.getenv("OPENAI_API_KEY")
+    language = "python"  # default
+    count = 5  # default
+    resume = False
+    checkpoint_interval = 10
     
-    parser.add_argument(
-        "--config",
-        type=str,
-        help="Path to configuration file"
-    )
+    # Parse arguments
+    args = sys.argv[1:]
     
-    parser.add_argument(
-        "--output",
-        type=str,
-        default="data/generated",
-        help="Output directory (default: data/generated)"
-    )
+    # Handle flags
+    if "--resume" in args:
+        resume = True
+        args.remove("--resume")
     
-    # Pipeline-specific arguments
-    parser.add_argument(
-        "--samples",
-        type=int,
-        help="Number of samples to generate (pipeline mode)"
-    )
+    if "--checkpoint-interval" in args:
+        idx = args.index("--checkpoint-interval")
+        if idx + 1 < len(args):
+            try:
+                checkpoint_interval = int(args[idx + 1])
+                args.pop(idx)  # Remove flag
+                args.pop(idx)  # Remove value
+            except ValueError:
+                print("Error: Checkpoint interval must be an integer")
+                sys.exit(1)
+        else:
+            print("Error: --checkpoint-interval requires a value")
+            sys.exit(1)
     
-    # Generation-specific arguments
-    parser.add_argument(
-        "--application",
-        type=str,
-        help="Specific application seed to use"
-    )
+    # Parse positional arguments
+    if not api_key and args:
+        api_key = args.pop(0)
     
-    parser.add_argument(
-        "--concept", 
-        type=str,
-        help="Specific concept seed to use"
-    )
+    if args:
+        potential_lang = args[0].lower()
+        if potential_lang in LanguageFactory.get_supported_languages():
+            language = args.pop(0)
     
-    parser.add_argument(
-        "--count",
-        type=int,
-        default=1,
-        help="Number of examples to generate (default: 1)"
-    )
+    if args:
+        try:
+            count = int(args[0])
+        except ValueError:
+            print("Error: Count must be an integer")
+            sys.exit(1)
     
-    parser.add_argument(
-        "--preview",
-        action="store_true",
-        help="Show preview of generated code"
-    )
+    if not api_key:
+        print("Error: OpenAI API key required")
+        print("Usage: python main.py [api_key] [language] [count] [--resume] [--checkpoint-interval N]")
+        print(f"Supported languages: {', '.join(LanguageFactory.get_supported_languages())}")
+        print("Set OPENAI_API_KEY environment variable or pass as argument")
+        sys.exit(1)
     
-    parser.add_argument(
-        "--stats",
-        action="store_true", 
-        help="Show generation statistics"
-    )
+    print(f"Code Output Prediction System")
+    print(f"Language: {language}")
+    print(f"Generating {count} samples...")
+    if resume:
+        print("Resume mode enabled - will continue from checkpoint if available")
+    print(f"Checkpoint interval: {checkpoint_interval} samples")
     
-    parser.add_argument(
-        "--list-seeds",
-        action="store_true",
-        help="List available seeds and exit"
-    )
-    
-    args = parser.parse_args()
-    
-    # Handle special commands
-    if args.list_seeds:
-        list_seeds()
-        return 0
-    
-    print("🤖 Code Output Prediction System")
-    print("=" * 40)
-    print(f"Mode: {args.mode}")
-    print(f"Output: {args.output}")
-    
-    if args.config:
-        print(f"Config: {args.config}")
-    
-    # Route to appropriate handler
-    if args.mode == "generate":
-        return generate_mode(args)
-    elif args.mode == "execute":
-        return execute_mode(args)  
-    elif args.mode == "verify":
-        return verify_mode(args)
-    elif args.mode == "pipeline":
-        return pipeline_mode(args)
-    
-    return 0
+    try:
+        # Initialize system
+        system = CodePredictionSystem(api_key, language)
+        
+        # Generate samples with progress tracking and checkpointing
+        samples = system.generate_batch(count, checkpoint_interval, resume)
+        
+        # Print summary
+        successful = sum(1 for s in samples if s["success"])
+        print(f"\nGeneration Complete!")
+        print(f"═" * 50)
+        print(f"Language: {language}")
+        print(f"Total samples: {len(samples)}")
+        print(f"Successful: {successful}")
+        print(f"Failed: {len(samples) - successful}")
+        print(f"Success rate: {successful/len(samples)*100:.1f}%")
+        print(f"Output saved to: {system.output_dir}")
+        
+    except KeyboardInterrupt:
+        print("\n\nInterrupted by user - checkpoint saved for resume")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
