@@ -2,26 +2,26 @@
 
 A comprehensive system for training open-source Large Language Models (LLMs) to predict code execution outputs using **supervised fine-tuning** and **reinforcement learning with verification rewards**.
 
-## 🎯 Overview
+## Overview
 
 This system implements a complete pipeline for training models to predict the exact output of code execution:
 
-1. **📊 Data Generation**: Generates diverse code examples with test inputs and verified outputs
-2. **🎯 Supervised Fine-tuning**: Trains models using standard supervised learning on code-output pairs  
-3. **🚀 Reinforcement Learning**: Uses verification-based rewards to improve prediction accuracy
-4. **📈 Evaluation**: Comprehensive evaluation metrics and model comparison tools
+1. **Data Generation**: Generates diverse code examples with test inputs and verified outputs
+2. **Supervised Fine-tuning**: Trains models using standard supervised learning on code-output pairs  
+3. **Reinforcement Learning**: Uses verification-based rewards to improve prediction accuracy
+4. **Evaluation**: Comprehensive evaluation metrics and model comparison tools
 
-## ✨ Key Features
+## Key Features
 
-- **🤖 Multiple Model Support**: Pre-configured support for popular open-source models (CodeLlama, DeepSeek Coder, StarCoder2, Phi-2, Mistral)
-- **🔧 Custom Model Support**: Easy integration of any HuggingFace model
-- **💾 Memory Efficient**: 4-bit quantization and LoRA fine-tuning for reduced memory usage
-- **📊 Dataset Management**: Structured dataset creation, storage, and management
-- **⚡ Parallel Training**: Optimized training pipelines with checkpointing and resumption
-- **📈 Comprehensive Evaluation**: Multiple metrics including exact match, fuzzy match, and reward-based evaluation
-- **🔄 Complete Pipeline**: End-to-end automation from data generation to trained models
+- **Multiple Model Support**: Pre-configured support for popular open-source models (CodeLlama, DeepSeek Coder, StarCoder2, Phi-2, Mistral)
+- **Custom Model Support**: Easy integration of any HuggingFace model
+- **Memory Efficient**: 4-bit quantization and LoRA fine-tuning for reduced memory usage
+- **Dataset Management**: Structured dataset creation, storage, and management
+- **Parallel Training**: Optimized training pipelines with checkpointing and resumption
+- **Comprehensive Evaluation**: Multiple metrics including exact match, fuzzy match, and reward-based evaluation
+- **Complete Pipeline**: End-to-end automation from data generation to trained models
 
-## ��️ Installation
+## Installation
 
 ### System Requirements
 
@@ -73,7 +73,7 @@ pip install torch --index-url https://download.pytorch.org/whl/cu118
 pip install -r requirements.txt
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. List Available Models
 ```bash
@@ -95,7 +95,7 @@ python train.py full-pipeline --model phi-2 --languages python --num-samples 50
 python train.py evaluate --rl-path checkpoints/rl/final_model --dataset-name code_prediction_dataset
 ```
 
-## 📋 Available Models
+## Available Models
 
 | Model | Size | Description | Memory (4-bit) |
 |-------|------|-------------|----------------|
@@ -105,7 +105,7 @@ python train.py evaluate --rl-path checkpoints/rl/final_model --dataset-name cod
 | `starcoder2-7b` | 7B | StarCoder2 - diverse programming languages | ~3.5GB |
 | `mistral-7b` | 7B | Mistral - excellent general reasoning | ~3.5GB |
 
-## 📖 Usage Guide
+## Usage Guide
 
 ### Data Generation
 
@@ -208,7 +208,7 @@ dm.export_to_csv('my_dataset', 'train')
 "
 ```
 
-## 🏗️ System Architecture
+## System Architecture
 
 ```
 ├── src/
@@ -228,7 +228,7 @@ dm.export_to_csv('my_dataset', 'train')
 └── validate_installation.py # Installation validation
 ```
 
-## ⚙️ Configuration
+## Configuration
 
 ### Training Configuration
 
@@ -256,7 +256,7 @@ The system automatically applies memory optimizations:
 - **Gradient Checkpointing**: Trades compute for memory
 - **Dynamic Batching**: Adjusts batch size based on available memory
 
-## 📊 Evaluation Metrics
+## Evaluation Metrics
 
 The system provides comprehensive evaluation:
 
@@ -265,7 +265,7 @@ The system provides comprehensive evaluation:
 - **Average Reward**: Mean reward score from verification system
 - **Loss Metrics**: Standard training/validation loss
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -300,9 +300,9 @@ export OPENAI_API_KEY="your-key-here"
 3. **Model Size**: Begin with smaller models (phi-2) for experimentation
 4. **LoRA Parameters**: Lower rank reduces memory but may impact quality
 
-## 🤝 Contributing
+## Contributing
 
-Contributions are welcome! Areas for improvement:
+Contributions are welcome. Areas for improvement:
 
 - Additional programming languages
 - More sophisticated reward functions
@@ -310,11 +310,11 @@ Contributions are welcome! Areas for improvement:
 - Memory optimization techniques
 - Model architectures
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **HuggingFace**: For the transformers library and model hosting
 - **OpenAI**: For the API used in data generation
@@ -322,7 +322,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Microsoft**: For Phi-2 model
 - **DeepSeek**: For specialized code models
 
-## 📚 Citation
+## Citation
 
 If you use this system in your research, please cite:
 
@@ -337,4 +337,4 @@ If you use this system in your research, please cite:
 
 ---
 
-**Ready to train your own code prediction models? Start with the Quick Start guide above!** 🚀
+Ready to train your own code prediction models? Start with the Quick Start guide above.

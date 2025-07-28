@@ -1,15 +1,15 @@
 # Quick Start Guide
 
-Get up and running with code output prediction training in under 10 minutes!
+Get up and running with code output prediction training in under 10 minutes.
 
-## ⚡ Prerequisites
+## Prerequisites
 
 1. **Python 3.8+** with pip
 2. **CUDA GPU** (recommended, 8GB+ VRAM)  
 3. **OpenAI API Key** ([Get one here](https://platform.openai.com/api-keys))
 4. **16GB+ RAM** and **10GB+ free storage**
 
-## 🚀 Installation
+## Installation
 
 ```bash
 # 1. Clone repository
@@ -30,7 +30,7 @@ export OPENAI_API_KEY="your-api-key-here"
 python validate_installation.py
 ```
 
-## 🎯 Essential Commands
+## Essential Commands
 
 ### 1. See Available Models
 ```bash
@@ -68,7 +68,7 @@ python train.py train-rl --model phi-2 --base-model-path checkpoints/supervised 
 python train.py evaluate --rl-path checkpoints/rl/final_model --dataset-name code_prediction_dataset
 ```
 
-## 📋 Command Quick Reference
+## Command Quick Reference
 
 | Command | Purpose | Time | GPU Memory |
 |---------|---------|------|------------|
@@ -78,7 +78,7 @@ python train.py evaluate --rl-path checkpoints/rl/final_model --dataset-name cod
 | `train-rl` | Train with RL | 30-60 min | 4-8GB |
 | `full-pipeline` | Complete training | 45-90 min | 4-8GB |
 
-## 🔧 Configuration Tips
+## Configuration Tips
 
 **For Limited GPU Memory (<8GB):**
 ```bash
@@ -102,7 +102,7 @@ python train.py full-pipeline \
     --run-name "production-run"
 ```
 
-## 📊 Expected Results
+## Expected Results
 
 After training, you should see:
 
@@ -148,7 +148,7 @@ python -c "import torch; print(torch.cuda.is_available())"
 nvidia-smi
 ```
 
-## 🎯 Next Steps
+## Next Steps
 
 1. **Start Small**: Begin with `phi-2` model and 20 samples
 2. **Scale Up**: Move to `codellama-7b` with more data  
