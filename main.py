@@ -319,7 +319,7 @@ def main():
         
         # Print summary
         successful = sum(1 for s in samples if s["success"])
-        print(f"\nGeneration Complete!")
+        print(f"\nGeneration Complete")
         print(f"═" * 50)
         print(f"Language: {language}")
         print(f"Total samples: {len(samples)}")

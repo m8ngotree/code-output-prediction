@@ -121,7 +121,7 @@ class TrainingPipeline:
         Returns:
             List of generated samples
         """
-        logger.info("🔄 Starting data generation phase...")
+        logger.info("Starting data generation phase...")
         
         if not self.config.openai_api_key:
             raise ValueError("OpenAI API key required for data generation")
@@ -141,7 +141,7 @@ class TrainingPipeline:
             logger.info(f"Generated {len(successful_samples)}/{len(samples)} successful {language} samples")
             all_samples.extend(successful_samples)
         
-        logger.info(f"✅ Data generation complete: {len(all_samples)} total samples")
+        logger.info(f"Data generation complete: {len(all_samples)} total samples")
         
         # Save raw samples if requested
         if self.config.save_intermediate:
@@ -162,7 +162,7 @@ class TrainingPipeline:
         Returns:
             Dataset name
         """
-        logger.info("📊 Creating training dataset...")
+        logger.info("Creating training dataset...")
         
         # Create dataset
         dataset = self.dataset_manager.create_dataset_from_samples(
@@ -174,7 +174,7 @@ class TrainingPipeline:
         # Get dataset statistics
         stats = self.dataset_manager.get_dataset_stats(self.config.dataset_name)
         
-        logger.info(f"✅ Dataset created: {self.config.dataset_name}")
+        logger.info(f"Dataset created: {self.config.dataset_name}")
         logger.info(f"   Total examples: {stats['total_examples']}")
         logger.info(f"   Languages: {list(stats['languages'].keys())}")
         logger.info(f"   Concepts: {len(stats['concepts'])}")
@@ -197,10 +197,10 @@ class TrainingPipeline:
             Path to trained model if successful
         """
         if not self.config.run_supervised:
-            logger.info("⏭️  Skipping supervised training (disabled in config)")
+            logger.info("Skipping supervised training (disabled in config)")
             return None
             
-        logger.info("🎯 Starting supervised fine-tuning phase...")
+        logger.info("Starting supervised fine-tuning phase...")
         
         # Configure supervised training
         supervised_config = SupervisedTrainingConfig(
@@ -219,7 +219,7 @@ class TrainingPipeline:
         trainer = SupervisedTrainer(supervised_config)
         results = trainer.train(dataset_name)
         
-        logger.info("✅ Supervised training completed!")
+        logger.info("Supervised training completed")
         logger.info(f"   Model saved to: {results['model_path']}")
         logger.info(f"   Final test loss: {results['test_results']['eval_loss']:.4f}")
         
@@ -237,10 +237,10 @@ class TrainingPipeline:
             Path to RL-trained model if successful
         """
         if not self.config.run_rl:
-            logger.info("⏭️  Skipping RL training (disabled in config)")
+            logger.info("Skipping RL training (disabled in config)")
             return None
             
-        logger.info("🚀 Starting reinforcement learning phase...")
+        logger.info("Starting reinforcement learning phase...")
         
         # Configure RL training
         rl_config = RLTrainingConfig(
@@ -258,7 +258,7 @@ class TrainingPipeline:
         trainer = CodeOutputRLTrainer(rl_config)
         results = trainer.train(dataset_name)
         
-        logger.info("✅ RL training completed!")
+        logger.info("RL training completed")
         logger.info(f"   Model saved to: {results['model_path']}")
         logger.info(f"   Final average reward: {results['final_avg_reward']:.2f}")
         
@@ -277,7 +277,7 @@ class TrainingPipeline:
         Returns:
             Evaluation results
         """
-        logger.info("📈 Evaluating trained models...")
+        logger.info("Evaluating trained models...")
         
         results = {"evaluation_timestamp": datetime.now().isoformat()}
         
@@ -319,7 +319,7 @@ class TrainingPipeline:
         Returns:
             Pipeline results including model paths and evaluation metrics
         """
-        logger.info("🚀 Starting complete training pipeline...")
+        logger.info("Starting complete training pipeline...")
         logger.info(f"Output directory: {self.output_dir}")
         
         pipeline_results = {
@@ -381,7 +381,7 @@ class TrainingPipeline:
             pipeline_results["status"] = "completed"
             
             logger.info("\n" + "="*60)
-            logger.info("🎉 PIPELINE COMPLETED SUCCESSFULLY!")
+            logger.info("PIPELINE COMPLETED SUCCESSFULLY")
             logger.info("="*60)
             logger.info(f"Total stages completed: {len(pipeline_results['stages_completed'])}")
             logger.info(f"Dataset: {dataset_name} ({pipeline_results['num_samples']} samples)")
@@ -392,7 +392,7 @@ class TrainingPipeline:
             logger.info(f"Results saved to: {self.output_dir}")
             
         except Exception as e:
-            logger.error(f"❌ Pipeline failed: {str(e)}")
+            logger.error(f"Pipeline failed: {str(e)}")
             pipeline_results["status"] = "failed"
             pipeline_results["error"] = str(e)
             pipeline_results["end_time"] = datetime.now().isoformat()

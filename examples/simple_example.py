@@ -17,22 +17,21 @@ from src.training.training_pipeline import TrainingPipeline, PipelineConfig
 from main import CodePredictionSystem
 from src.core.dataset_manager import DatasetManager
 
-
 def simple_training_example():
     """Run a simple training example with minimal configuration."""
     
-    print("🚀 Simple Code Output Prediction Training Example")
+    print("Simple Code Output Prediction Training Example")
     print("=" * 60)
     
     # Check for OpenAI API key
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        print("❌ Error: Please set OPENAI_API_KEY environment variable")
+        print("Error: Please set OPENAI_API_KEY environment variable")
         print("   export OPENAI_API_KEY='your-api-key-here'")
         return
     
     # Step 1: Generate a small dataset
-    print("\n📊 Step 1: Generating training data...")
+    print("\nStep 1: Generating training data...")
     
     # Create code prediction system
     system = CodePredictionSystem(api_key, "python")
@@ -42,14 +41,14 @@ def simple_training_example():
     samples = system.generate_batch(10)
     successful_samples = [s for s in samples if s.get("success", False)]
     
-    print(f"   ✅ Generated {len(successful_samples)}/{len(samples)} successful samples")
+    print(f"   Generated {len(successful_samples)}/{len(samples)} successful samples")
     
     if len(successful_samples) < 3:
-        print("❌ Error: Not enough successful samples for training")
+        print("Error: Not enough successful samples for training")
         return
     
     # Step 2: Create dataset
-    print("\n📊 Step 2: Creating training dataset...")
+    print("\nStep 2: Creating training dataset...")
     
     dataset_manager = DatasetManager()
     dataset_name = "simple_example_dataset"
@@ -60,10 +59,10 @@ def simple_training_example():
         description="Simple example dataset for code output prediction"
     )
     
-    print(f"   ✅ Dataset created: {dataset_name}")
+    print(f"   Dataset created: {dataset_name}")
     
     # Step 3: Run training pipeline
-    print("\n🎯 Step 3: Running training pipeline...")
+    print("\nStep 3: Running training pipeline...")
     
     # Configure pipeline for quick training
     config = PipelineConfig(
@@ -90,11 +89,11 @@ def simple_training_example():
     supervised_path = pipeline.run_supervised_training(dataset_name)
     
     if supervised_path:
-        print(f"   ✅ Model trained successfully!")
+        print(f"   Model trained successfully")
         print(f"   Model saved to: {supervised_path}")
         
         # Step 4: Simple evaluation
-        print("\n📈 Step 4: Evaluating the model...")
+        print("\nStep 4: Evaluating the model...")
         
         evaluation_results = pipeline.evaluate_models(
             dataset_name=dataset_name,
@@ -105,17 +104,17 @@ def simple_training_example():
             loss = evaluation_results["supervised"]["eval_loss"]
             print(f"   Test Loss: {loss:.4f}")
         
-        print("\n🎉 Training example completed successfully!")
+        print("\nTraining example completed successfully")
         print(f"   Results saved to: {pipeline.output_dir}")
         
     else:
-        print("❌ Error: Training failed")
+        print("Error: Training failed")
 
 
 def quick_evaluation_example():
     """Quick example of evaluating a pre-trained model."""
     
-    print("\n🔬 Quick Evaluation Example")
+    print("\nQuick Evaluation Example")
     print("=" * 40)
     
     # This would evaluate a model if one exists
@@ -137,8 +136,8 @@ if __name__ == "__main__":
         quick_evaluation_example()
         
     except KeyboardInterrupt:
-        print("\n❌ Interrupted by user")
+        print("\nInterrupted by user")
         
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        print(f"\nError: {e}")
         print("\nFor help, run: python train.py --help") 

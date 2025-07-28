@@ -41,13 +41,13 @@ class TrainingCLI:
     
     def list_models(self):
         """Display available models and their information."""
-        print("🤖 Available Models for Training:")
+        print("Available Models for Training:")
         print("=" * 60)
         
         models = self.model_manager.list_available_models()
         
         for key, info in models.items():
-            print(f"\n📋 {key}")
+            print(f"\n{key}")
             print(f"   Model ID: {info['model_id']}")
             print(f"   Description: {info['description']}")
             print(f"   Context Length: {info['context_length']:,} tokens")
@@ -62,12 +62,12 @@ class TrainingCLI:
                 print(f"     • 4-bit Quantized: {memory['4bit_quantized']}")
                 print(f"     • Recommended: {memory['recommended']}")
         
-        print(f"\n💡 To use a custom model, specify --model custom --custom-model-id YOUR_MODEL_ID")
-        print(f"🔧 All models support LoRA fine-tuning for memory efficiency")
+        print(f"\nTo use a custom model, specify --model custom --custom-model-id YOUR_MODEL_ID")
+        print(f"All models support LoRA fine-tuning for memory efficiency")
     
     def list_datasets(self):
         """Display available datasets."""
-        print("📊 Available Training Datasets:")
+        print("Available Training Datasets:")
         print("=" * 50)
         
         datasets = self.dataset_manager.list_datasets()
@@ -77,7 +77,7 @@ class TrainingCLI:
             return
         
         for name, info in datasets.items():
-            print(f"\n📋 {name}")
+            print(f"\n{name}")
             print(f"   Description: {info['description']}")
             print(f"   Examples: {info['num_examples']:,}")
             print(f"   Languages: {', '.join(info['languages'])}")
@@ -94,7 +94,7 @@ class TrainingCLI:
         # Validate API key
         api_key = args.openai_api_key or os.getenv("OPENAI_API_KEY")
         if not api_key:
-            print("❌ Error: OpenAI API key required")
+            print("Error: OpenAI API key required")
             print("   Set OPENAI_API_KEY environment variable or use --openai-api-key")
             return
         
@@ -110,15 +110,15 @@ class TrainingCLI:
             samples = system.generate_batch(args.num_samples)
             successful = [s for s in samples if s.get("success", False)]
             
-            print(f"   ✅ {len(successful)}/{len(samples)} samples successful")
+            print(f"   {len(successful)}/{len(samples)} samples successful")
             all_samples.extend(successful)
         
         if not all_samples:
-            print("❌ No successful samples generated!")
+            print("No successful samples generated")
             return
         
         # Create dataset
-        print(f"\n📊 Creating dataset '{args.dataset_name}'...")
+        print(f"\nCreating dataset '{args.dataset_name}'...")
         dataset = self.dataset_manager.create_dataset_from_samples(
             samples=all_samples,
             dataset_name=args.dataset_name,
@@ -127,7 +127,7 @@ class TrainingCLI:
         
         # Show statistics
         stats = self.dataset_manager.get_dataset_stats(args.dataset_name)
-        print(f"\n✅ Dataset created successfully!")
+        print(f"\nDataset created successfully")
         print(f"   Name: {args.dataset_name}")
         print(f"   Total examples: {stats['total_examples']:,}")
         print(f"   Languages: {list(stats['languages'].keys())}")
@@ -135,7 +135,7 @@ class TrainingCLI:
     
     def train_supervised_command(self, args):
         """Run supervised fine-tuning."""
-        print("🎯 Supervised Fine-tuning")
+        print("Supervised Fine-tuning")
         print("=" * 35)
         
         # Configure training
@@ -154,7 +154,7 @@ class TrainingCLI:
             evaluate_base_model=args.evaluate_base_model
         )
         
-        print(f"📋 Configuration:")
+        print(f"Configuration:")
         print(f"   Model: {config.model_key}")
         print(f"   Dataset: {config.dataset_name}")
         print(f"   Dataset Strategy: {config.dataset_strategy}")
@@ -170,13 +170,13 @@ class TrainingCLI:
         trainer = SupervisedTrainer(config)
         results = trainer.train()
         
-        print(f"\n✅ Training completed!")
+        print(f"\nTraining completed")
         print(f"   Model saved to: {results['model_path']}")
         print(f"   Final test loss: {results['test_results']['eval_loss']:.4f}")
     
     def train_rl_command(self, args):
         """Run RL training."""
-        print("🚀 Reinforcement Learning Training")
+        print("Reinforcement Learning Training")
         print("=" * 45)
         
         # Configure training
@@ -191,7 +191,7 @@ class TrainingCLI:
             dataset_name=args.dataset_name
         )
         
-        print(f"📋 Configuration:")
+        print(f"Configuration:")
         print(f"   Model: {config.model_key}")
         print(f"   Base Model: {config.base_model_path or 'None (using base model)'}")
         print(f"   Dataset: {config.dataset_name}")
@@ -204,19 +204,19 @@ class TrainingCLI:
         trainer = CodeOutputRLTrainer(config)
         results = trainer.train()
         
-        print(f"\n✅ RL training completed!")
+        print(f"\nRL training completed")
         print(f"   Model saved to: {results['model_path']}")
         print(f"   Final average reward: {results['final_avg_reward']:.2f}")
     
     def full_pipeline_command(self, args):
         """Run the complete training pipeline."""
-        print("🚀 Complete Training Pipeline")
+        print("Complete Training Pipeline")
         print("=" * 40)
         
         # Validate API key for data generation
         api_key = args.openai_api_key or os.getenv("OPENAI_API_KEY")
         if not api_key:
-            print("❌ Error: OpenAI API key required for data generation")
+            print("Error: OpenAI API key required for data generation")
             return
         
         # Configure pipeline
@@ -252,7 +252,7 @@ class TrainingCLI:
         pipeline = TrainingPipeline(config)
         results = pipeline.run_complete_pipeline()
         
-        print(f"\n🎉 Pipeline completed!")
+        print(f"\nPipeline completed")
         print(f"   Status: {results['status']}")
         print(f"   Stages completed: {len(results['stages_completed'])}")
         if results.get('supervised_model_path'):
@@ -262,11 +262,11 @@ class TrainingCLI:
     
     def evaluate_command(self, args):
         """Evaluate trained models."""
-        print("📈 Model Evaluation")
+        print("Model Evaluation")
         print("=" * 25)
         
         if args.supervised_path:
-            print(f"🎯 Evaluating supervised model: {args.supervised_path}")
+            print(f"Evaluating supervised model: {args.supervised_path}")
             config = SupervisedTrainingConfig(
                 model_key=args.model,
                 custom_model_id=args.custom_model_id
@@ -276,7 +276,7 @@ class TrainingCLI:
             print(f"   Test Loss: {results['eval_loss']:.4f}")
         
         if args.rl_path:
-            print(f"🚀 Evaluating RL model: {args.rl_path}")
+            print(f"Evaluating RL model: {args.rl_path}")
             config = RLTrainingConfig(
                 model_key=args.model,
                 custom_model_id=args.custom_model_id
@@ -437,10 +437,10 @@ def main():
             parser.print_help()
     
     except KeyboardInterrupt:
-        print("\n❌ Interrupted by user")
+        print("\nInterrupted by user")
         sys.exit(1)
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"Error: {e}")
         sys.exit(1)
 
 
