@@ -8,14 +8,7 @@ programming languages with a unified interface.
 
 from typing import Tuple, Any
 
-from ..generators.code_generator import CodeGenerator
-from ..executors.executor import CodeExecutor
-from ..generators.js_generator import JSGenerator
-from ..executors.js_executor import JSExecutor
-from ..generators.rust_generator import RustGenerator
-from ..executors.rust_executor import RustExecutor
-from ..generators.cpp_generator import CppGenerator
-from ..executors.cpp_executor import CppExecutor
+# Import generators and executors dynamically to avoid circular imports
 
 
 class LanguageFactory:
@@ -27,7 +20,7 @@ class LanguageFactory:
     maintaining consistency and extensibility across the system.
     """
     
-    SUPPORTED_LANGUAGES = ["python", "javascript", "rust", "cpp"]
+    SUPPORTED_LANGUAGES = ["python-library"]
     
     @staticmethod
     def create_generator_and_executor(language: str, api_key: str) -> Tuple[Any, Any]:
@@ -36,7 +29,7 @@ class LanguageFactory:
         
         Args:
             language (str): Programming language (case-insensitive)
-                          Supported: python, javascript/js, rust, cpp/c++
+                          Supported: python-library
             api_key (str): OpenAI API key for code generation
             
         Returns:
@@ -47,14 +40,10 @@ class LanguageFactory:
         """
         language = language.lower()
         
-        if language == "python":
-            return CodeGenerator(api_key), CodeExecutor()
-        elif language == "javascript" or language == "js":
-            return JSGenerator(api_key), JSExecutor()
-        elif language == "rust":
-            return RustGenerator(api_key), RustExecutor()
-        elif language == "cpp" or language == "c++":
-            return CppGenerator(api_key), CppExecutor()
+        if language == "python-library":
+            from ..generators.library_task_factory import LibraryTaskFactory
+            from ..executors.library_executor import LibraryCodeExecutor
+            return LibraryTaskFactory(api_key), LibraryCodeExecutor()
         else:
             raise ValueError(f"Unsupported language: {language}. Supported: {LanguageFactory.SUPPORTED_LANGUAGES}")
     
